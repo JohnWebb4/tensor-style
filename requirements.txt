@@ -1,1 +1,3 @@
+IPython
 imageio
+matplotlib
