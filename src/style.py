@@ -1,33 +1,35 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import sys
 import tensorflow as tf
 import IPython.display as display
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-mpl.rcParams['figure.figsize'] = (12,12)
-mpl.rcParams['axes.grid'] = False
 
 import numpy as np
 import time
 import functools
 
-content_path = tf.keras.utils.get_file('turtle.jpg','https://storage.googleapis.com/download.tensorflow.org/example_images/Green_Sea_Turtle_grazing_seagrass.jpg')
-style_path = tf.keras.utils.get_file('kandinsky.jpg','https://storage.googleapis.com/download.tensorflow.org/example_images/Vassily_Kandinsky%2C_1913_-_Composition_7.jpg')
+if len(sys.argv) < 3:
+    raise ValueError('Missing content image URI or style image URI')
 
-EPOCHS = 10
-STEPS_PER_EPOCH = 10
+content_path = tf.keras.utils.get_file('content.jpg', sys.argv[1])
+style_path = tf.keras.utils.get_file('style.jpg', sys.argv[2])
+
+EPOCHS = 10 # How often do you want images
+STEPS_PER_EPOCH = 100 # How many iterations per epoch. Don't recommend changing
 TOTAL_VARIATIONAL_WEIGHT = 1e8
+INPUT_MAX_DIM=512 # This effects the scale of the style. Observing quadratic time complexity. Default is 512
 
 def load_img(path_to_img):
-  max_dim = 512
   img = tf.io.read_file(path_to_img)
   img = tf.image.decode_jpeg(img, channels=3)
   img = tf.image.convert_image_dtype(img, tf.float32)
 
   shape = tf.cast(tf.shape(img)[:-1], tf.float32)
   long_dim = tf.math.reduce_max(shape)
-  scale = max_dim / long_dim
+  scale = INPUT_MAX_DIM / long_dim
 
   new_shape = tf.cast(shape * scale, tf.int32)
 
@@ -48,12 +50,6 @@ def imshow(image, title=None):
 
 content_image = load_img(content_path)
 style_image = load_img(style_path)
-
-plt.subplot(1, 2, 1)
-imshow(content_image, 'Content Image')
-
-plt.subplot(1, 2, 2)
-imshow(style_image, 'Style Image')
 
 x = tf.keras.applications.vgg19.preprocess_input(content_image*255)
 x = tf.image.resize(x, (244, 244))
@@ -221,9 +217,9 @@ for epoch in range(EPOCHS):
 
     display.clear_output(wait=True)
     imshow(image.read_value())
-    plt.title("Train step: {}".format(step))
+    plt.axis('off')
 
-    plt.savefig('image_at_epoch{:04d}.png'.format(epoch))
+    plt.savefig('image_at_epoch{:04d}.png'.format(epoch), bbox_inches='tight', pad_inches=0)
 
 end = time.time()
 print('Total time: {:.1f}'.format(end-start))
